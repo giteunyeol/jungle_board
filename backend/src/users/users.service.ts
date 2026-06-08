@@ -37,4 +37,12 @@ export class UsersService {
         });
         return this.userRepository.save(user); //저장 끝나면 저장된 User리턴
     }
+
+    findByEmailWithPasswordHash(email: string): Promise<User | null> {
+        return this.userRepository
+            .createQueryBuilder('user') //쿼리 만들기
+            .addSelect('user.passwordHash') //가져올 컬럼 추가
+            .where('user.email = :email', { email }) //조건 추가
+            .getOne(); //email가진 유저객체 리턴
+    }
 }

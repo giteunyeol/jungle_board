@@ -26,7 +26,7 @@ export class User { //테이블 컬럼을 정의, 다른 TypeScript파일에서 
     @Column() //닉네임
     nickname!: string;
 
-    @Column() //암호화된 비밀번호 저장 
+    @Column( { select: false }) //암호화된 비밀번호 저장 
     passwordHash!: string;
 
     @CreateDateColumn() //데이터가 처음 만들어진 시간 저장

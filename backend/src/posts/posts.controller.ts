@@ -1,0 +1,66 @@
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { AuthService } from 'src/auth/auth.service'; //인증
+import { PostsService } from './posts.service'; //게시글 CRUD로직 사용
+
+@Controller('posts')
+export class PostsController {
+    constructor(
+        private readonly postsService: PostsService,
+        private readonly authService: AuthService,
+    ) {}
+
+    @Post() //Post/posts요청 처리
+    async create (
+        @Headers('authorization') authorization: string, // JWT토큰이 들어있는 Authorization 헤더 꺼냄 
+        @Body() body : { title: string; content: string }, // 요청 body에서 title, content 꺼냄
+    ) {
+        const currentUser = await this.authService.me(authorization);
+
+        return this.postsService.createPost(
+            body.title,
+            body.content,
+            currentUser,
+        );
+    }
+
+    @Get() 
+    findAll() {
+        return this.postsService.findAll();
+    }
+
+    @Get(':id')
+    findById(@Param('id') id: string) {
+        return this.postsService.findById(Number(id));
+    }
+
+    @Patch(':id') 
+    async updatePost(
+        @Param('id') id: string,
+        @Headers('authorization') authorization: string,
+        @Body() body: { title: string; content; string},
+    ){
+        const currentUser = await this.authService.me(authorization);
+
+        return this.postsService.updatePost(
+            Number(id),
+            body.title,
+            body.content,
+            currentUser,
+        )
+    }
+
+    @Delete(':id')
+    async deletePost(
+        @Param('id') id: string,
+        @Headers('authorization') authorization: string
+    ) {
+        const currentUser = await this.authService.me(authorization);
+
+        await this.postsService.deletePost(Number(id), currentUser);
+
+        return {
+            messege: '게시글이 삭제됐습니다.',
+        }
+    }
+
+}

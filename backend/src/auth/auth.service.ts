@@ -4,6 +4,7 @@ import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/co
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt'; //bcrypt로부터 bcrypt라는 이름으로 가져옴
 import { JwtService } from '@nestjs/jwt'; //jwt토큰 검증 서비스
+import { User } from '../users/user.entity';
 
 
 @Injectable()
@@ -28,7 +29,7 @@ export class AuthService {
     
     //로그인 함수
     async login(email: string, password: string) {
-        const user = await this.userService.findByEmail(email);
+        const user = await this.userService.findByEmailWithPasswordHash(email);
         if (!user) { //틀리면 에러 뱉기
             throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
         }
@@ -52,14 +53,20 @@ export class AuthService {
         }
     }
 
-    async me(authorization: string) { //현재 로그인한 유저 정보 리턴하는 함수
+    async me(authorization: string): Promise<User> { //현재 로그인한 유저 정보 리턴하는 함수
         if(!authorization) {
             throw new UnauthorizedException('인증 토큰이 없습니다.');
         }
         
         //Bearer abc.def.ghi 이런식으로 들어옴. 그래서 Bearer부분을 빈 문자열로 바꿈.
         const accessToken = authorization.replace('Bearer ', ''); 
-        const payload = this.jwtService.verify(accessToken); //jwt토큰이 유효한지 확인
+
+        let payload: { sub: number; email: string }; //토큰 검사 예외처리
+        try {
+            payload = this.jwtService.verify(accessToken);
+        } catch {
+            throw new UnauthorizedException('유효하지 않은 토큰입니다.');
+        }
         
         // JWT payload의 sub(user id)를 이용해서 DB에서 현재 유저를 조회
         const user = await this.userService.findById(payload.sub);
@@ -67,10 +74,6 @@ export class AuthService {
             throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
         }
 
-        return {
-            id: user.id,
-            email: user.email,
-            nickname: user.nickname,
-        }
+        return user; 
     } 
 }
