@@ -3,11 +3,15 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt'; //bcrypt로부터 bcrypt라는 이름으로 가져옴
+import { JwtService } from '@nestjs/jwt'; //jwt토큰 검증 서비스
 
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly userService: UsersService){}
+    constructor(
+        private readonly userService: UsersService,
+        private readonly jwtService: JwtService,        
+    ){}
 
     //회원가입 처리 함수. 비동기
     async register(email: string, nickname: string, password: string) {
@@ -33,10 +37,40 @@ export class AuthService {
         if (!isPasswordValid) { //PW 틀리면
             throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
         }
+        const accessToken = this.jwtService.sign({ //accessToken 저장
+            sub: user.id,
+            email: user.email,
+        });
+
         return { //프론트에서 사용할 수 있게 기본 정보들 리턴해줌
+            accessToken,
+            user: { //토큰정보와 유저정보 구분하려고 묶음
+                id: user.id,
+                email: user.email,
+                nickname: user.nickname,
+            }
+        }
+    }
+
+    async me(authorization: string) { //현재 로그인한 유저 정보 리턴하는 함수
+        if(!authorization) {
+            throw new UnauthorizedException('인증 토큰이 없습니다.');
+        }
+        
+        //Bearer abc.def.ghi 이런식으로 들어옴. 그래서 Bearer부분을 빈 문자열로 바꿈.
+        const accessToken = authorization.replace('Bearer ', ''); 
+        const payload = this.jwtService.verify(accessToken); //jwt토큰이 유효한지 확인
+        
+        // JWT payload의 sub(user id)를 이용해서 DB에서 현재 유저를 조회
+        const user = await this.userService.findById(payload.sub);
+        if (!user) {
+            throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
+        }
+
+        return {
             id: user.id,
             email: user.email,
             nickname: user.nickname,
         }
-    }
+    } 
 }

@@ -21,6 +21,13 @@ export class UsersService {
         });
     }
 
+    //ID로 유저 한명 찾음. 
+    findById(id: number): Promise<User | null> { 
+        return this.userRepository.findOne({
+            where: { id },
+        });
+    }
+
     //새 유저를 만드는 함수.
     createUser(email: string, nickname: string, passwordHash: string): Promise<User> {
         const user = this.userRepository.create({

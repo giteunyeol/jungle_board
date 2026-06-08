@@ -1,6 +1,6 @@
 //HTTP 요청 받는곳
 
-import { Body, Controller, Post } from '@nestjs/common'; 
+import { Body, Controller, Get, Headers, Post } from '@nestjs/common'; 
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -16,5 +16,10 @@ export class AuthController {
     @Post('login')
     login(@Body() body : {email: string, password: string}) {
         return this.authService.login(body.email, body.password);
+    }
+
+    @Get('me') //Get으로 들어오는 /auth/me요청 처리. Authorization 헤더 JWT를 보고 현재 로그인한 유저정보 반환API
+    me(@Headers('authorization') authorization: string) { //요청 헤더에서 authorization값 꺼냄
+        return this.authService.me(authorization);
     }
 }
