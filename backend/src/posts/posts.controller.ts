@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
 import { AuthService } from 'src/auth/auth.service'; //인증
 import { PostsService } from './posts.service'; //게시글 CRUD로직 사용
 
@@ -25,8 +25,8 @@ export class PostsController {
     }
 
     @Get() 
-    findAll() {
-        return this.postsService.findAll();
+    findAll( @Query('page') page?: string, @Query('limit') limit?: string,) { //처음에 게시판 들어올때 몇번째일지 안알려줄 수 있으니까
+        return this.postsService.findAll( page ? Number(page) : 1, limit ? Number(limit) : 10, ); //삼항연산자, page있으면 해당 넘버, 없으면 기본값(1)
     }
 
     @Get(':id')
