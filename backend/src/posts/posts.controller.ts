@@ -12,7 +12,7 @@ export class PostsController {
     @Post() //Post/posts요청 처리
     async create (
         @Headers('authorization') authorization: string, // JWT토큰이 들어있는 Authorization 헤더 꺼냄 
-        @Body() body : { title: string; content: string }, // 요청 body에서 title, content 꺼냄
+        @Body() body : { title: string; content: string; tagNames?: string[] }, // 요청 body에서 title, content 꺼냄
     ) {
         const currentUser = await this.authService.me(authorization);
 
@@ -20,6 +20,7 @@ export class PostsController {
             body.title,
             body.content,
             currentUser,
+            body.tagNames,
         );
     }
 
@@ -37,7 +38,7 @@ export class PostsController {
     async updatePost(
         @Param('id') id: string,
         @Headers('authorization') authorization: string,
-        @Body() body: { title: string; content; string},
+        @Body() body: { title: string; content; string; tagNames?: string[] },
     ){
         const currentUser = await this.authService.me(authorization);
 
@@ -46,7 +47,8 @@ export class PostsController {
             body.title,
             body.content,
             currentUser,
-        )
+            body.tagNames,
+        );
     }
 
     @Delete(':id')
