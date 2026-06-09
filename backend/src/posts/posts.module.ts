@@ -10,5 +10,6 @@ import { AuthService } from 'src/auth/auth.service';
   imports: [TypeOrmModule.forFeature([Post]), AuthModule], //PostsModule 안에서 Post Entity용 Repository를 사용할 수 있게 등록
   providers: [PostsService],
   controllers: [PostsController],
+  exports: [PostsService],
 })
 export class PostsModule {}
