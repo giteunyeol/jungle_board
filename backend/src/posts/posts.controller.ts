@@ -25,8 +25,13 @@ export class PostsController {
     }
 
     @Get() 
-    findAll( @Query('page') page?: string, @Query('limit') limit?: string,) { //처음에 게시판 들어올때 몇번째일지 안알려줄 수 있으니까
-        return this.postsService.findAll( page ? Number(page) : 1, limit ? Number(limit) : 10, ); //삼항연산자, page있으면 해당 넘버, 없으면 기본값(1)
+    findAll( 
+        @Query('page') page?: string, //처음에 게시판 들어올때 몇번째일지 안알려줄 수 있으니까 
+        @Query('limit') limit?: string, 
+        @Query('search') search?: string,
+        @Query('tag') tag?: string,
+    ) { 
+        return this.postsService.findAll( page ? Number(page) : 1, limit ? Number(limit) : 10, search, tag); //삼항연산자, page있으면 해당 넘버, 없으면 기본값(1)
     }
 
     @Get(':id')

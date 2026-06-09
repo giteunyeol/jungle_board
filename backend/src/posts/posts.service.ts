@@ -28,13 +28,27 @@ export class PostsService {
     }
 
     //게시글 목록 조회(페이징)
-    async findAll(page = 1, limit = 10) { //비동기로 Post 배열 리턴
-        const [items, total] = await this.postRepository.findAndCount({ //findAndCount: 게시글 목록을 찾고, 조건에 맞는 전체 갯수도 세라. (게시글목록, 전체갯수 리턴함)
-            relations: {author: true, tags: true}, //작성자 author정보랑 태그정보도 가져와라
-            order: { createdAt: 'DESC' }, //최신글부터 나오게
-            skip: (page - 1) * limit, //앞부터 몇개를 건너뛸지
-            take: limit, //몇개 가져올지
-        });
+    async findAll(page = 1, limit = 10, search?: string, tag?: string) { //몇번째 페이지인지, 태그 or 검색어 기능도 추가
+        const query = this.postRepository
+            .createQueryBuilder('post') //post로 쿼리 작성
+            .leftJoinAndSelect('post.author', 'author') // 작성자 정보
+            .leftJoinAndSelect('post.tags', 'tag') //태그정보
+            .orderBy('post.createdAt', 'DESC') //최신순으로
+            .skip((page - 1) * limit) //스킵할 페이지
+            .take(limit); //limit만큼 가져옴
+
+        if(search) { //검색어가 들어왔으면
+            query.andWhere( //AND 조건을 추가함.(필터 붙이기)
+                '(post.title ILIKE :search OR post.content ILIKE :search)', //post.title,content ILIKE :search -> 제목이나 내용에 검색어가 포함돼있으면 찾음 (SQL 조건문)
+                { search: `%${search}%`}, // 직접 값을 삽입할 수 있지만, 보안상의 이유로 따로 전달.
+            );
+        }
+
+        if (tag) { //태그가 들어왔으면
+            query.andWhere('tag.name = :tag', { tag: tag });
+        }
+
+        const [items, total] = await query.getManyAndCount();
 
         return {
             items, //현재 페이지에 넣을 게시글 목록
