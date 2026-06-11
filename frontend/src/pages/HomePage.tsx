@@ -20,6 +20,7 @@ export default function HomePage() {
   const [title, setTitle] = useState(''); //글쓰기 input에 입력한 제목/내용을 React상태로 기억
   const [content, setContent] = useState('');
   const [tagInput, setTagInput] = useState(''); //사용자가 입력한 태그 문자열 저장
+  const [search, setSearch] = useState(''); //검색
 
   //useEffect:컴포넌트가 화면 랜더링 된 후 실행할 코드 등록함수(Hook함수)
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function HomePage() {
     }
 
     async function fetchPosts() { //게시물 패치해주기
-      const response = await getPosts();
+      const response = await getPosts(search);
 
       if (!response.ok) {
         return;
@@ -48,7 +49,7 @@ export default function HomePage() {
     fetchMe();
     fetchPosts();
 
-  }, []); //[]: 처음 화면 뜰 때 한번만 실행
+  }, [search]); // 검색어 들어올 때마다 게시글목록
 
   const handleCreatePost: SubmitEventHandler<HTMLFormElement> =  //유저가 글쓰기 제출할 때 실행할 로직
     async (event) => {
@@ -128,6 +129,13 @@ export default function HomePage() {
 
       <section> {/*section: 내용을 의미 있는 구역으로 묶는 태그*/}
         <h2>게시글 목록</h2>
+        
+        <input
+          type="text"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="게시글 검색"
+        />
 
         {/* article: 독립적인 글/콘텐츠 하나를 나타내는 태그*/}
         {/* key: 리액트가 각 항목을 구분하려고 쓰는 고유값. 리액트 렌더링 최적화/구분용 */}
