@@ -167,21 +167,14 @@ README.md should include:
 
 Build the project step by step in this order:
 
-1. Set up frontend and backend project structure
-2. Connect NestJS backend to PostgreSQL
-3. Implement User entity
-4. Implement sign up and login
-5. Implement JWT authentication
-6. Connect React auth screens to backend APIs
-7. Implement posts CRUD
-8. Implement comments
-9. Implement tags
-10. Implement pagination
-11. Implement search
-12. Implement RAG feature
-13. Implement MCP feature
-14. Implement AI Agent feature
-15. Write README and capture demo screenshot
+1. Finish backend baseline board APIs
+2. Connect React auth screens to backend APIs
+3. Connect React post list/detail/create/edit/delete screens
+4. Connect comments, tags, pagination, and search UI
+5. Implement RAG feature
+6. Implement MCP feature
+7. Implement AI Agent feature
+8. Write README and capture demo screenshot
 
 ## Already Completed
 
@@ -194,7 +187,125 @@ Build the project step by step in this order:
   - `typeorm`
   - `pg`
 - `TypeOrmModule.forRoot` configured in `backend/src/app.module.ts`
-- User entity creation started at `backend/src/users/user.entity.ts`
+- GitHub repository connected and pushed to `https://github.com/giteunyeol/jungle_board.git`
+
+Backend baseline completed:
+
+- User entity and UsersModule/UsersService implemented
+- AuthModule/AuthService/AuthController implemented
+- Sign up API implemented:
+  - `POST /auth/register`
+  - Checks duplicate email
+  - Hashes password with `bcrypt`
+  - Stores `passwordHash`, not raw password
+- Login API implemented:
+  - `POST /auth/login`
+  - Uses `findByEmailWithPasswordHash`
+  - Compares raw password with `bcrypt.compare`
+  - Returns JWT `accessToken` and basic user info
+- Current user API implemented:
+  - `GET /auth/me`
+  - Reads `Authorization: Bearer <token>`
+  - Verifies JWT
+  - Looks up current user by `payload.sub`
+  - Handles invalid token as `401 Unauthorized`
+- `User.passwordHash` uses `@Column({ select: false })`
+  - Prevents password hash from leaking in author responses
+  - Login-specific query explicitly adds `passwordHash`
+
+Post backend completed:
+
+- Post entity implemented with:
+  - `id`
+  - `title`
+  - `content`
+  - `author`
+  - `tags`
+  - `createdAt`
+  - `updatedAt`
+- PostsModule/PostsService/PostsController implemented
+- Post CRUD APIs implemented and tested:
+  - `POST /posts`
+  - `GET /posts`
+  - `GET /posts/:id`
+  - `PATCH /posts/:id`
+  - `DELETE /posts/:id`
+- Create/update/delete require JWT through `AuthService.me`
+- Update/delete verify post author before modifying
+
+Comments backend completed:
+
+- Comment entity implemented with:
+  - `id`
+  - `content`
+  - `author`
+  - `post`
+  - `createdAt`
+  - `updatedAt`
+- CommentsModule/CommentsService/CommentsController implemented
+- Comment APIs implemented and tested:
+  - `POST /comments/posts/:postId`
+  - `GET /comments/posts/:postId`
+  - `DELETE /comments/:id`
+- Delete verifies comment author before deleting
+
+Tags backend completed:
+
+- Tag entity implemented with:
+  - `id`
+  - unique `name`
+  - many-to-many relation with posts
+- Post entity has `ManyToMany` tags relation with `@JoinTable`
+- TagsModule/TagsService implemented
+- `TagsService` includes:
+  - `findOrCreateTag(name)`
+  - `resolveTags(names)`
+- Duplicate tag names are removed with `[...new Set(names)]`
+- Posts can be created and updated with `tagNames`
+- Existing tags are reused and missing tags are created
+
+Pagination and search completed:
+
+- `GET /posts?page=1&limit=10`
+- Response shape:
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 0
+}
+```
+
+- `GET /posts?search=keyword`
+  - Searches `title` and `content`
+  - Uses PostgreSQL `ILIKE`
+  - Uses safe query parameters, not raw string interpolation
+- `GET /posts?tag=tagName`
+  - Filters posts by tag name
+- `GET /posts?search=keyword&tag=tagName`
+  - Supports combined keyword search and tag filter
+- For Korean query text in curl, use URL encoding:
+
+```bash
+curl -G "http://localhost:3000/posts" \
+  --data-urlencode "search=태그"
+```
+
+Current recommended next step:
+
+- Move to frontend integration:
+  - Auth screens
+  - Token storage
+  - Post list/detail/create/edit/delete UI
+  - Comments UI
+  - Tag/search/pagination UI
+- After frontend baseline works, add AI features:
+  - RAG
+  - MCP
+  - AI Agent
 
 ## Learning Style / Collaboration Notes
 
@@ -209,4 +320,3 @@ For each command or code block, explain:
 Avoid giving too many future steps at once.
 
 The user is learning React, NestJS, PostgreSQL, TypeORM, and TypeScript concepts while implementing the project.
-
