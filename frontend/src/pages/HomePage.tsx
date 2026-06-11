@@ -21,6 +21,8 @@ export default function HomePage() {
   const [content, setContent] = useState('');
   const [tagInput, setTagInput] = useState(''); //사용자가 입력한 태그 문자열 저장
   const [search, setSearch] = useState(''); //검색
+  const [page, setPage] = useState(1); //현재 보고있는페이지, 디폴트값 1
+  const [totalPages, setTotalPages] = useState(1); //전체 페이지수 기억. 
 
   //useEffect:컴포넌트가 화면 랜더링 된 후 실행할 코드 등록함수(Hook함수)
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function HomePage() {
     }
 
     async function fetchPosts() { //게시물 패치해주기
-      const response = await getPosts(search);
+      const response = await getPosts(search, page);
 
       if (!response.ok) {
         return;
@@ -44,12 +46,13 @@ export default function HomePage() {
 
       const data = await response.json();
       setPosts(data.items);
+      setTotalPages(data.totalPages); //총 페이지
     }
 
     fetchMe();
     fetchPosts();
 
-  }, [search]); // 검색어 들어올 때마다 게시글목록
+  }, [search, page]); // 검색어 들어올 때마다 게시글목록
 
   const handleCreatePost: SubmitEventHandler<HTMLFormElement> =  //유저가 글쓰기 제출할 때 실행할 로직
     async (event) => {
@@ -129,11 +132,15 @@ export default function HomePage() {
 
       <section> {/*section: 내용을 의미 있는 구역으로 묶는 태그*/}
         <h2>게시글 목록</h2>
-        
+
+        {/*검색어 바뀔때마다 1페이지로 바뀜.*/}
         <input
           type="text"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           placeholder="게시글 검색"
         />
 
@@ -154,6 +161,23 @@ export default function HomePage() {
 
           </article>)
         )}
+        
+        {/*페이지 버튼*/}
+        <div>
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+          >이전
+          </button>
+          <span> {page} / {totalPages} </span>
+          <button
+            type="button"
+            disabled={page >= totalPages}
+            onClick={() => setPage(page + 1)}
+          >다음
+          </button>
+        </div>
       </section>
     </main>
   )
