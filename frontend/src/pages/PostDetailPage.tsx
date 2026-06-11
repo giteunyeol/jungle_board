@@ -1,11 +1,21 @@
 import { useNavigate, useParams } from "react-router";
-import { useEffect, useState } from "react";
-import { deletePost, getPost, updatePost } from "../api/postApi"; 
+import { useEffect, useState, type SubmitEventHandler } from "react";
+import { deletePost, getPost, updatePost } from "../api/postApi";
+import { createComment, deleteComment, getComments } from "../api/commentApi";
 
 type Post = {
     id: number;
     title: string;
     content: string;
+};
+
+type Comment = {
+    id: number;
+    content: string;
+    author: {
+        id: number;
+        nickname: string;
+    };
 };
 
 export default function PostDetailPage() { //상세페이지 파일 생성
@@ -18,8 +28,11 @@ export default function PostDetailPage() { //상세페이지 파일 생성
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
-    
-    useEffect( () => {
+
+    const [comments, setComments] = useState<Comment[]>([]); //현재 게시글 댓글목록
+    const [commentContent, setCommentContent] = useState(''); //현재 입력창에 쓰고있는 내용
+
+    useEffect(() => {
         async function fetchPost() {
             if (!postId) { //만약 게시글 ID가 없으면 그냥 리턴
                 return;
@@ -37,7 +50,23 @@ export default function PostDetailPage() { //상세페이지 파일 생성
             setEditContent(data.content);
         }
 
+        async function fetchComments() { //댓글 세팅함수
+            if (!postId) {
+                return;
+            }
+
+            const response = await getComments(postId);
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            setComments(data);
+        }
+
         fetchPost();
+        fetchComments();
     }, [postId]); //[postId] : useEffect의 의존성 배열. postId값이 바뀌면 이 effect를 다시 실행해라.
 
     async function handleDelete() { //실제로 지우는 함수
@@ -53,7 +82,7 @@ export default function PostDetailPage() { //상세페이지 파일 생성
         }
 
         const data = await response.json();
-        
+
         setPost(data); //수정 성공 후 백엔드가 돌려준 최신 게시글로 화면을 바꿈
         setIsEditing(false); //수정모드 끄기
 
@@ -77,32 +106,85 @@ export default function PostDetailPage() { //상세페이지 파일 생성
         setIsEditing(false);
     }
 
+    const handleCreateComment: SubmitEventHandler<HTMLFormElement> = //댓글 생성함수, 브라우저 화면 고쳐줌
+        async (event) => {
+            event.preventDefault();
+
+            if (!postId) {
+                return;
+            }
+
+            const response = await createComment(postId, commentContent); //백엔드에 댓글 생성 요청 보냄
+
+            if (!response.ok) {
+                alert("댓글 작성에 실패했습니다.");
+                return;
+            }
+
+            const data = await response.json();
+
+            setComments([...comments, data]); //현재 데이터를 댓글목록 뒤에 추가
+            setCommentContent(''); //댓글 입력창 비우기
+        }
+
+    async function handleDeleteComment(commentId: number) {
+        const response = await deleteComment(commentId);
+
+        if(!response.ok) {
+            alert('댓글 삭제에 실패했습니다.');
+            return;
+        }
+
+        setComments(comments.filter((comment) => comment.id !== commentId)); //삭제한 댓글 id와 다른 댓글만 남김
+    }
+
     return (
         <main>
             <h1>게시글 상세</h1>
 
             {!post && <p>불러오는 중...</p>} {/* 로딩이 안됐으면 */}
-            { post && (
-                <article>
-                    {/* 편집중이 아니라면 */}
-                    {!isEditing && ( 
-                        <>
-                            <h2>{post.title}</h2>
-                            <p>{post.content}</p>
+            {post && (
+                <>
+                    <article>
+                        {/* 편집중이 아니라면 */}
+                        {!isEditing && (
+                            <>
+                                <h2>{post.title}</h2>
+                                <p>{post.content}</p>
 
-                            <button type="button" onClick={() => setIsEditing(true)}> 수정 </button>
-                            <button type="button" onClick={handleDelete}> 삭제 </button>
-                        </>
-                    )}
-                    {isEditing &&(
-                        <>
-                            <input type="text" value={editTitle} onChange={(event) => setEditTitle(event.target.value)}/>
-                            <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)}/>
-                            <button type="button" onClick={handleUpdate}>저장</button>
-                            <button type="button" onClick={() => setIsEditing(false)}>취소</button>
-                        </>
-                    )}
-                </article>
+                                <button type="button" onClick={() => setIsEditing(true)}> 수정 </button>
+                                <button type="button" onClick={handleDelete}> 삭제 </button>
+                            </>
+                        )}
+                        {isEditing && (
+                            <>
+                                <input type="text" value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
+                                <textarea value={editContent} onChange={(event) => setEditContent(event.target.value)} />
+                                <button type="button" onClick={handleUpdate}>저장</button>
+                                <button type="button" onClick={() => setIsEditing(false)}>취소</button>
+                            </>
+                        )}
+                    </article>
+
+                    <section>
+                        <h2>댓글</h2>
+                        <form onSubmit={handleCreateComment}>
+                            <textarea value={commentContent} onChange={(event) => setCommentContent(event.target.value)} placeholder="댓글을 입력하세요" />
+                            <button type="submit">댓글 작성</button>
+                        </form>
+                        {/* 댓글 뼈대 잡기*/}
+                        {comments.map((comment) => (
+                            <article key={comment.id}>
+                                <p>{comment.content}</p>
+                                <p>작성자: {comment.author.nickname}</p>
+
+                                <button type="button" onClick={() => handleDeleteComment(comment.id)}>
+                                    댓글 삭제
+                                </button>
+                            </article>)
+                        )}
+                    </section>
+                </>
             )}
         </main>
     );
